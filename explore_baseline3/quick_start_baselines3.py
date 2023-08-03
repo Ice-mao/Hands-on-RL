@@ -5,7 +5,7 @@ from stable_baselines3.common.evaluation import evaluate_policy
 
 
 # Create environment
-env = gym.make("LunarLander-v2", render_mode="rgb_array")
+env = gym.make("LunarLander-v2", render_mode="human")
 
 # Instantiate the agent
 model = DQN("MlpPolicy", env, verbose=1)
@@ -30,7 +30,7 @@ mean_reward, std_reward = evaluate_policy(model, model.get_env(), n_eval_episode
 # Enjoy trained agent
 vec_env = model.get_env()
 obs = vec_env.reset()
-for i in range(1000):
+for i in range(10):
     action, _states = model.predict(obs, deterministic=True)
     obs, rewards, dones, info = vec_env.step(action)
     vec_env.render("human")
