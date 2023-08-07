@@ -1,36 +1,30 @@
-import gymnasium as gym
-
 from stable_baselines3 import DQN
+from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
 from stable_baselines3.common.evaluation import evaluate_policy
+import gym
 
-
-# Create environment
-env = gym.make("LunarLander-v2", render_mode="human")
-
-# Instantiate the agent
-model = DQN("MlpPolicy", env, verbose=1)
-# Train the agent and display a progress bar
-model.learn(total_timesteps=int(2e5), progress_bar=True)
-# Save the agent
-model.save("dqn_lunar")
-del model  # delete trained model to demonstrate loading
-
-# Load the trained agent
-# NOTE: if you have loading issue, you can pass `print_system_info=True`
-# to compare the system on which the model was trained vs the current one
-# model = DQN.load("dqn_lunar", env=env, print_system_info=True)
-model = DQN.load("dqn_lunar", env=env)
-
-# Evaluate the agent
-# NOTE: If you use wrappers with your environment that modify rewards,
-#       this will be reflected here. To evaluate with original rewards,
-#       wrap environment in a "Monitor" wrapper before other wrappers.
-mean_reward, std_reward = evaluate_policy(model, model.get_env(), n_eval_episodes=10)
-
-# Enjoy trained agent
-vec_env = model.get_env()
-obs = vec_env.reset()
-for i in range(10):
-    action, _states = model.predict(obs, deterministic=True)
-    obs, rewards, dones, info = vec_env.step(action)
-    vec_env.render("human")
+env_name = "CartPole-v1"
+env = gym.make(env_name)
+# 把环境向量化，如果有多个环境写成列表传入DummyVecEnv中，可以用一个线程来执行多个环境，提高训练效率
+env = DummyVecEnv([lambda : env])
+# 定义一个DQN模型，设置其中的各个参数
+model = DQN(
+    "MlpPolicy",                                # MlpPolicy定义策略网络为MLP网络
+    env=env,
+    learning_rate=5e-4,
+    batch_size=128,
+    buffer_size=50000,
+    learning_starts=0,
+    target_update_interval=250,
+    policy_kwargs={"net_arch" : [256, 256]},     # 这里代表隐藏层为2层256个节点数的网络
+    verbose=1,                                   # verbose=1代表打印训练信息，如果是0为不打印，2为打印调试信息
+    tensorboard_log="../tensorboard/CartPole-v1/"  # 训练数据保存目录，可以用tensorboard查看
+)
+# 开始训练
+model.learn(total_timesteps=1e5)
+# 策略评估，可以看到倒立摆在平稳运行了
+mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10, render=True)
+#env.close()
+print("mean_reward:",mean_reward,"std_reward:",std_reward)
+# 保存模型到相应的目录
+model.save("./model/CartPole.pkl")
